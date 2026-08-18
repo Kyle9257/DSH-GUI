@@ -19,7 +19,10 @@ public sealed partial class AppWindow
     private readonly Panel _contextFill = new();
     private readonly System.Windows.Forms.Timer _usageTimer = new();
     private readonly Button _btnToggleUsage = null!;
+    private Button _btnToggleSensitive = null!; // 在 BuildUsagePanel（方法）中赋值，不能 readonly
     private DateTime _lastBalanceAt = DateTime.MinValue;
+    private string? _lastBalance;   // 最近一次余额查询结果（掩码时仍缓存，点击 👁 立即显示）
+    private bool _sensitiveVisible; // 费用/余额是否明文显示（默认 false：掩码 *****）
 
     /// <summary>构建右侧模型用量侧栏（5 张圆角卡片）。</summary>
     private void BuildUsagePanel()
@@ -38,6 +41,26 @@ public sealed partial class AppWindow
             AutoSize = true,
         };
         _usagePanel.Controls.Add(title);
+
+        // 费用/余额显隐切换（👁）：默认掩码 *****，点击显示明文（偏好持久化）
+        _btnToggleSensitive = new Button
+        {
+            Text = "👁",
+            Font = new Font("Segoe UI Emoji", 9),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Panel,
+            ForeColor = Accent,
+            Location = new Point(234, 9),
+            Size = new Size(32, 26),
+            Cursor = Cursors.Hand,
+            TabStop = false,
+        };
+        _btnToggleSensitive.FlatAppearance.BorderSize = 0;
+        _btnToggleSensitive.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 60, 68);
+        Ui.ApplyRound(_btnToggleSensitive, 6);
+        Ui.Tip(_tip, _btnToggleSensitive, "费用与余额默认掩码显示（*****），点击 👁 显示 / 隐藏明文");
+        _btnToggleSensitive.Click += (_, _) => ToggleSensitiveVisible();
+        _usagePanel.Controls.Add(_btnToggleSensitive);
 
         // 卡片1：当前会话
         var sessionCard = Ui.Card(16, 46, 248, 76, CardBg);
@@ -110,7 +133,7 @@ public sealed partial class AppWindow
         // 卡片4：费用（估算）
         var costCard = Ui.Card(16, 378, 248, 74, CardBg);
         costCard.Controls.Add(Ui.SectionTitle("费用（估算）", 14, 10, 220));
-        _costValue.Text = "—";
+        _costValue.Text = "*****";
         _costValue.Font = new Font("Consolas", 18, FontStyle.Bold);
         _costValue.ForeColor = TextCost;
         _costValue.Location = new Point(14, 30);
@@ -121,7 +144,7 @@ public sealed partial class AppWindow
         // 卡片5：账户余额
         var balanceCard = Ui.Card(16, 462, 248, 74, CardBg);
         balanceCard.Controls.Add(Ui.SectionTitle("账户余额（DeepSeek）", 14, 10, 220));
-        _balanceValue.Text = "—";
+        _balanceValue.Text = "*****";
         _balanceValue.Font = new Font("Consolas", 18, FontStyle.Bold);
         _balanceValue.ForeColor = TextBalance;
         _balanceValue.Location = new Point(14, 30);
@@ -201,7 +224,8 @@ public sealed partial class AppWindow
             }
             _breakdownValue.Text = $"系统 {ModelUsage.FormatTokens(s.CurrentSystemTokens)} · 工具 {ModelUsage.FormatTokens(s.CurrentToolsTokens)} · 消息 {ModelUsage.FormatTokens(s.CurrentMessageTokens)}";
 
-            _costValue.Text = $"¥{s.TotalCostCny:0.00}";
+            // 费用/余额：默认掩码 *****，点击 👁 后显示明文
+            _costValue.Text = _sensitiveVisible ? $"¥{s.TotalCostCny:0.00}" : "*****";
             RefreshBalanceIfStale();
         }
         catch
@@ -210,13 +234,21 @@ public sealed partial class AppWindow
         }
     }
 
-    /// <summary>余额每 60 秒最多查询一次（外部 API），失败显示占位。</summary>
+    /// <summary>余额每 60 秒最多查询一次（外部 API），失败显示占位；掩码时仍缓存结果。</summary>
     private async void RefreshBalanceIfStale()
     {
         if (DateTime.UtcNow - _lastBalanceAt < TimeSpan.FromSeconds(60)) return;
         _lastBalanceAt = DateTime.UtcNow;
-        var balance = await ModelUsage.FetchBalanceAsync();
-        _balanceValue.Text = balance ?? "—";
+        _lastBalance = await ModelUsage.FetchBalanceAsync();
+        _balanceValue.Text = _sensitiveVisible ? (_lastBalance ?? "—") : "*****";
+    }
+
+    /// <summary>👁 切换费用/余额明文显示（默认掩码），立即重绘并持久化偏好。</summary>
+    private void ToggleSensitiveVisible()
+    {
+        _sensitiveVisible = !_sensitiveVisible;
+        UpdateModelUsage();
+        SaveUiState(_usagePanel.Visible, _sensitiveVisible);
     }
 
     // ---------- 侧栏显隐与偏好持久化 ----------
@@ -224,43 +256,49 @@ public sealed partial class AppWindow
     private void SetUsagePanelVisible(bool visible)
     {
         _usagePanel.Visible = visible;
+        _split.Panel2Collapsed = !visible; // 整列折叠，不残留空白条
         _btnToggleUsage.BackColor = visible ? Panel : Color.FromArgb(56, 56, 64);
         _btnToggleUsage.ForeColor = visible ? Accent : Dim;
-        SaveUiState(visible);
+        SaveUiState(visible, _sensitiveVisible);
     }
 
     private sealed class UiStateDoc
     {
         public bool UsagePanelVisible { get; set; } = true;
+        public bool SensitiveVisible { get; set; }
     }
 
     private static string UiStateFile => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "DshDesktop", "ui-state.json");
 
-    private static bool LoadUiState()
+    private static (bool UsagePanelVisible, bool SensitiveVisible) LoadUiState()
     {
         try
         {
             if (File.Exists(UiStateFile))
             {
                 var d = System.Text.Json.JsonSerializer.Deserialize<UiStateDoc>(File.ReadAllText(UiStateFile));
-                if (d != null) return d.UsagePanelVisible;
+                if (d != null) return (d.UsagePanelVisible, d.SensitiveVisible);
             }
         }
         catch
         {
         }
-        return true;
+        return (true, false);
     }
 
-    private static void SaveUiState(bool visible)
+    private static void SaveUiState(bool usagePanelVisible, bool sensitiveVisible)
     {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(UiStateFile)!);
             File.WriteAllText(UiStateFile,
-                System.Text.Json.JsonSerializer.Serialize(new UiStateDoc { UsagePanelVisible = visible }));
+                System.Text.Json.JsonSerializer.Serialize(new UiStateDoc
+                {
+                    UsagePanelVisible = usagePanelVisible,
+                    SensitiveVisible = sensitiveVisible,
+                }));
         }
         catch
         {

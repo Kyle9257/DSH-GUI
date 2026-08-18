@@ -99,6 +99,7 @@
 | 2026-08-18 | 项目规范化：partial 拆分（UsageSidebar/Cli）、PROJECT.md 记忆、ci.ps1 自查 |
 | 2026-08-18 | GUI 左侧底部「🌐 社区」入口（sidebar.footer.action）；exe 布局改 SplitContainer（侧栏收起不遮挡）；git 建立并推送 GitHub |
 | 2026-08-18 | 右侧侧栏上下文卡片新增「上下文过高」提示条（≥70% 橙 / ≥90% 红，提醒压缩上下文节省 token）；git 提交规范改为一律中文 |
+| 2026-08-18 | 费用/余额默认掩码（*****）+ 👁 切换明文（偏好持久化）；侧栏隐藏改整列折叠（Panel2Collapsed，不残留空白） |
 
 ## 七、自查清单（每次修改后执行）
 

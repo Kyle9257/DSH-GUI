@@ -206,8 +206,10 @@ public sealed partial class AppWindow : Form
         };
 
         _tip.InitialDelay = 600;
-        // 应用上次的侧栏可见性偏好（实现见 UsageSidebar 部分）
-        SetUsagePanelVisible(LoadUiState());
+        // 应用上次的侧栏可见性与费用/余额掩码偏好（实现见 UsageSidebar 部分）
+        var (usageVisible, sensitiveVisible) = LoadUiState();
+        _sensitiveVisible = sensitiveVisible;
+        SetUsagePanelVisible(usageVisible);
     }
 
     // ---------- UI 构建辅助 ----------
@@ -404,10 +406,14 @@ public sealed partial class AppWindow : Form
             _splitterSized = true;
             try
             {
+                // 侧栏若上次处于隐藏（Panel2Collapsed），先解除折叠完成约束设置，再恢复折叠
+                bool collapsed = _split.Panel2Collapsed;
+                _split.Panel2Collapsed = false;
                 _split.SplitterDistance = 420;
                 _split.Panel1MinSize = 420;
                 _split.Panel2MinSize = 240;
                 _split.SplitterDistance = Math.Max(420, _split.Width - 286);
+                _split.Panel2Collapsed = collapsed;
             }
             catch
             {
