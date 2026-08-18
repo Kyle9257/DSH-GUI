@@ -87,6 +87,8 @@
 11. **dist 目录里的 `DeepSeek Harness.exe.WebView2\` 是运行中实例的 WebView2 数据**：grep/扫描时排除，勿删。
 12. **GUI 客户端模块运行时加载**：改 `client.js` 刷新页面即生效，无需重启 dsh web。
 13. **ConvertFrom-Json（PS 5.1）对深层嵌套有限制**：用 -Depth 或直接读文件。
+14. **WinForms Dock 布局：Controls.Add 顺序 = 布局反序**（含窗体级）。`Add(topBar); Add(bottomBar); Add(fill)` 会把 Fill 控件铺满全窗体、topBar 盖在其上（侧栏顶部被标题栏遮住的根因）。正确：`Add(fill); Add(bottomBar); Add(topBar)`。statusBar 内部早已按此约定（注释「add 顺序 = 布局反序」），窗体级之前漏了。
+15. **诊断 UI 不可见用像素级截图**：副屏窗口 CopyFromScreen 必须与 GetWindowRect 同命令取值；窗口在副屏时主屏截图无效；当前模型无法直接读图时用 GetPixel 统计特征色（卡片 44,44,52 / 标题栏 38,38,44 / 眼睛 Dim 150,150,158）定位。
 
 ## 六、修改记录
 
@@ -102,6 +104,7 @@
 | 2026-08-18 | 右侧侧栏上下文卡片新增「上下文过高」提示条（≥70% 橙 / ≥90% 红，提醒压缩上下文节省 token）；git 提交规范改为一律中文 |
 | 2026-08-18 | 费用/余额默认掩码（*****）+ 👁 切换明文（偏好持久化）；侧栏隐藏改整列折叠（Panel2Collapsed，不残留空白） |
 | 2026-08-18 | 👁 按钮改自绘图标（踩坑：WinForms GDI 无法渲染彩色 emoji，👁 显示为空白；用 Paint 画眼睛，掩码=空心瞳孔/明文=实心瞳孔） |
+| 2026-08-18 | **修复 👁 不可见根因**：窗体级 Controls.Add 顺序错（[titleBar,statusBar,_split]），Fill 的 _split 占满全窗、标题栏盖住侧栏顶部 44px（含 👁 与「模型用量」标题）；改为反序添加 [_split,statusBar,titleBar]。像素级截图定位验证 |
 | 2026-08-18 | 构建后自动更新桌面快捷方式：新增 update-shortcut.ps1（→ dist exe，幂等），DshDesktop.csproj AfterBuild（Release）自动调用 |
 
 ## 七、自查清单（每次修改后执行）

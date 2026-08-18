@@ -184,9 +184,13 @@ public sealed partial class AppWindow : Form
         _split.Panel2.BackColor = Bg;
         _split.Panel2.Controls.Add(_usagePanel);
 
-        Controls.Add(titleBar);
-        Controls.Add(statusBar);
+        // Dock 布局：add 顺序 = 布局反序（与 statusBar 内部一致）。
+        // 踩坑：若按 [titleBar, statusBar, _split] 正序添加，Fill 的 _split 会先处理占满
+        // 整个窗体，titleBar 后处理盖在最上层 → 侧栏顶部（含 👁 按钮）被标题栏遮住。
+        // 正确：先加 Fill 的 _split，再加 Bottom 的 statusBar，最后加 Top 的 titleBar。
         Controls.Add(_split);
+        Controls.Add(statusBar);
+        Controls.Add(titleBar);
 
         // ---- 定时刷新 ----
         _timer.Interval = 2000;
