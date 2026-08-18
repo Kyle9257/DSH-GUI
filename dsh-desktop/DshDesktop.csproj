@@ -17,4 +17,9 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
   </ItemGroup>
 
+  <!-- 构建后自动更新桌面快捷方式（幂等；失败不阻塞构建） -->
+  <Target Name="UpdateDesktopShortcut" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\dsh-launcher\update-shortcut.ps1&quot;" IgnoreExitCode="true" />
+  </Target>
+
 </Project>

@@ -30,7 +30,8 @@
 | `start-dsh.ps1` / `stop-dsh.ps1` / `status.ps1` | CLI 薄封装 |
 | `dashboard.ps1` | WinForms 仪表盘（备选 UI） |
 | `smoke.ps1` | 冒烟测试（L1-L4） |
-| `install-shortcut.ps1` | 桌面快捷方式安装 |
+| `install-shortcut.ps1` | 桌面快捷方式安装（dashboard 版） |
+| `update-shortcut.ps1` | **构建后自动更新桌面快捷方式**（→ dist exe，幂等；由 csproj AfterBuild 在 Release 构建后自动调用，也可手动执行） |
 
 > 主入口是 exe；ps1 版为 CLI 工具/备选。两套实现语义一致（幂等、白名单、fail-safe）。
 
@@ -101,6 +102,7 @@
 | 2026-08-18 | 右侧侧栏上下文卡片新增「上下文过高」提示条（≥70% 橙 / ≥90% 红，提醒压缩上下文节省 token）；git 提交规范改为一律中文 |
 | 2026-08-18 | 费用/余额默认掩码（*****）+ 👁 切换明文（偏好持久化）；侧栏隐藏改整列折叠（Panel2Collapsed，不残留空白） |
 | 2026-08-18 | 👁 按钮改自绘图标（踩坑：WinForms GDI 无法渲染彩色 emoji，👁 显示为空白；用 Paint 画眼睛，掩码=空心瞳孔/明文=实心瞳孔） |
+| 2026-08-18 | 构建后自动更新桌面快捷方式：新增 update-shortcut.ps1（→ dist exe，幂等），DshDesktop.csproj AfterBuild（Release）自动调用 |
 
 ## 七、自查清单（每次修改后执行）
 
