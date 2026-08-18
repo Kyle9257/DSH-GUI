@@ -98,6 +98,7 @@
 | 2026-08-18 | 侧栏可隐藏（▤ 按钮 + 持久化）；修复标题按钮 DPI 消失 |
 | 2026-08-18 | 项目规范化：partial 拆分（UsageSidebar/Cli）、PROJECT.md 记忆、ci.ps1 自查 |
 | 2026-08-18 | GUI 左侧底部「🌐 社区」入口（sidebar.footer.action）；exe 布局改 SplitContainer（侧栏收起不遮挡）；git 建立并推送 GitHub |
+| 2026-08-18 | 右侧侧栏上下文卡片新增「上下文过高」提示条（≥70% 橙 / ≥90% 红，提醒压缩上下文节省 token）；git 提交规范改为一律中文 |
 
 ## 七、自查清单（每次修改后执行）
 
@@ -111,5 +112,6 @@
 
 - 仓库根：`D:\DSH`（分支 `main`）；远程：`origin = https://github.com/Kyle9257/DSH-GUI`
 - 已提交：初始提交 f2a1dde（24 文件）；`.gitignore` 排除 bin/obj/dist/state/logs/WebView2 数据/ui-state.json 等
-- 提交规范：自查（ci.ps1）全绿 → `git add -A` → `git commit -m "说明"` → `git push`
+- 提交规范：自查（ci.ps1）全绿 → `git add -A` → `git commit -m "说明（中文）"` → `git push`
+- **提交语言规则（强制）：每次 git 提交，`-m` 修改项说明一律用中文写**（如「新增上下文过高提示条」「修复侧栏重叠」），不得用英文或中英混杂
 - 凭据：git 凭据管理器已存 GitHub 凭据，push 静默认证

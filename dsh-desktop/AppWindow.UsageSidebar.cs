@@ -13,6 +13,7 @@ public sealed partial class AppWindow
     private readonly Label _tokenDetail = new();
     private readonly Label _contextValue = new();
     private readonly Label _breakdownValue = new();
+    private readonly Label _contextHint = new();
     private readonly Label _costValue = new();
     private readonly Label _balanceValue = new();
     private readonly Panel _contextFill = new();
@@ -65,8 +66,8 @@ public sealed partial class AppWindow
         tokenCard.Controls.Add(_tokenTotal);
         tokenCard.Controls.Add(_tokenDetail);
 
-        // 卡片3：当前上下文
-        var contextCard = Ui.Card(16, 234, 248, 104, CardBg);
+        // 卡片3：当前上下文（含「上下文过高」提示条，默认隐藏）
+        var contextCard = Ui.Card(16, 234, 248, 134, CardBg);
         contextCard.Controls.Add(Ui.SectionTitle("当前上下文", 14, 10, 220));
         _contextValue.Text = "—";
         _contextValue.Font = new Font("Consolas", 12, FontStyle.Bold);
@@ -90,12 +91,24 @@ public sealed partial class AppWindow
         _breakdownValue.ForeColor = Dim;
         _breakdownValue.Location = new Point(14, 70);
         _breakdownValue.Size = new Size(220, 26);
+        // 上下文占用过高提示条（>=70% 橙 / >=90% 红，提醒压缩上下文节省 token）
+        _contextHint.Text = "";
+        _contextHint.Font = new Font("Microsoft YaHei UI", 8.5f, FontStyle.Bold);
+        _contextHint.ForeColor = Color.White;
+        _contextHint.BackColor = BarWarn;
+        _contextHint.Location = new Point(14, 102);
+        _contextHint.Size = new Size(220, 22);
+        _contextHint.TextAlign = ContentAlignment.MiddleCenter;
+        _contextHint.Visible = false;
+        Ui.ApplyRound(_contextHint, 6);
+        Ui.Tip(_tip, _contextHint, "上下文占用过高：每次请求都会携带完整上下文，压缩会话历史可显著节省 token 费用");
         contextCard.Controls.Add(_contextValue);
         contextCard.Controls.Add(contextBar);
         contextCard.Controls.Add(_breakdownValue);
+        contextCard.Controls.Add(_contextHint);
 
         // 卡片4：费用（估算）
-        var costCard = Ui.Card(16, 348, 248, 74, CardBg);
+        var costCard = Ui.Card(16, 378, 248, 74, CardBg);
         costCard.Controls.Add(Ui.SectionTitle("费用（估算）", 14, 10, 220));
         _costValue.Text = "—";
         _costValue.Font = new Font("Consolas", 18, FontStyle.Bold);
@@ -106,7 +119,7 @@ public sealed partial class AppWindow
         costCard.Controls.Add(_costValue);
 
         // 卡片5：账户余额
-        var balanceCard = Ui.Card(16, 432, 248, 74, CardBg);
+        var balanceCard = Ui.Card(16, 462, 248, 74, CardBg);
         balanceCard.Controls.Add(Ui.SectionTitle("账户余额（DeepSeek）", 14, 10, 220));
         _balanceValue.Text = "—";
         _balanceValue.Font = new Font("Consolas", 18, FontStyle.Bold);
@@ -127,7 +140,7 @@ public sealed partial class AppWindow
             Text = "数据来自 DSH 会话投影与 DeepSeek 账户",
             Font = new Font("Microsoft YaHei UI", 8f),
             ForeColor = Color.FromArgb(132, 132, 142),
-            Location = new Point(16, 516),
+            Location = new Point(16, 540),
             AutoSize = true,
         };
         _usagePanel.Controls.Add(sourceHint);
@@ -162,11 +175,29 @@ public sealed partial class AppWindow
                 _contextFill.Width = Math.Max(0, (int)(220 * percent / 100.0));
                 // 占用分级变色：<70% 紫 / 70-90% 橙 / >90% 红
                 _contextFill.BackColor = percent >= 90 ? BarDanger : percent >= 70 ? BarWarn : BarContext;
+                // 上下文过高提示：>=90% 红（建议立即压缩）/ >=70% 橙（建议压缩节省 token），否则隐藏
+                if (percent >= 90)
+                {
+                    _contextHint.Text = $"⚠ 上下文过高（{percent:0}%），建议立即压缩";
+                    _contextHint.BackColor = BarDanger;
+                    _contextHint.Visible = true;
+                }
+                else if (percent >= 70)
+                {
+                    _contextHint.Text = $"⚠ 上下文偏高（{percent:0}%），可压缩节省 Token";
+                    _contextHint.BackColor = BarWarn;
+                    _contextHint.Visible = true;
+                }
+                else
+                {
+                    _contextHint.Visible = false;
+                }
             }
             else
             {
                 _contextValue.Text = "暂无数据";
                 _contextFill.Width = 0;
+                _contextHint.Visible = false;
             }
             _breakdownValue.Text = $"系统 {ModelUsage.FormatTokens(s.CurrentSystemTokens)} · 工具 {ModelUsage.FormatTokens(s.CurrentToolsTokens)} · 消息 {ModelUsage.FormatTokens(s.CurrentMessageTokens)}";
 
