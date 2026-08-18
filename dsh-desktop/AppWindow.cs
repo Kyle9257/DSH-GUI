@@ -43,6 +43,7 @@ public sealed partial class AppWindow : Form
     private int _startWait;
     private bool _navigated;
     private bool _closeAsked;
+    private bool _splitterSized;
 
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
@@ -167,6 +168,8 @@ public sealed partial class AppWindow : Form
 
         // ---- 主体：SplitContainer（Panel1=WebView2 对话区，Panel2=模型用量侧栏）----
         // SplitContainer 统一管理布局：窗口缩放/侧栏收起时绝不与 WebView2 重叠。
+        // 注意：SplitterDistance 不能在构造中按 ClientSize 计算（此时布局未定、DPI 未应用，
+        // 会导致 Panel2 初始过宽而「遮挡」对话区）；构造仅占位，OnShown 按真实宽度修正。
         _web.Dock = DockStyle.Fill;
         _web.DefaultBackgroundColor = Bg;
         _split = new SplitContainer
@@ -176,7 +179,7 @@ public sealed partial class AppWindow : Form
             Panel1MinSize = 420,
             Panel2MinSize = 240,
             SplitterWidth = 6,
-            SplitterDistance = Math.Max(420, ClientSize.Width - 286),
+            SplitterDistance = 100,
             BackColor = Bg,
         };
         _split.Panel1.Controls.Add(_web);
@@ -393,6 +396,12 @@ public sealed partial class AppWindow : Form
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        // 窗口实际布局完成后，按真实宽度设置侧栏初始宽度（侧栏固定 ~280px）
+        if (!_splitterSized)
+        {
+            _splitterSized = true;
+            _split.SplitterDistance = Math.Max(420, _split.Width - 286);
+        }
         try
         {
             await _web.EnsureCoreWebView2Async(null);
@@ -449,5 +458,38 @@ public sealed partial class AppWindow : Form
         base.OnKeyDown(e);
         if (e.KeyCode == Keys.F5) Reload();
         else if (e.KeyCode == Keys.F11) ToggleMaximize();
+    }
+
+    // ---------- 无边框窗口：鼠标边缘拖动缩放 ----------
+
+    private const int WmNcHitTest = 0x84;
+    private const int HtClient = 0x1;
+    private const int HtLeft = 0xA, HtRight = 0xB, HtTop = 0xC, HtTopLeft = 0xD, HtTopRight = 0xE, HtBottom = 0xF, HtBottomLeft = 0x10, HtBottomRight = 0x11;
+    private const int ResizeEdge = 8;
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WmNcHitTest)
+        {
+            base.WndProc(ref m);
+            if ((int)m.Result == HtClient && WindowState == FormWindowState.Normal)
+            {
+                var pos = PointToClient(Cursor.Position);
+                bool left = pos.X <= ResizeEdge;
+                bool right = pos.X >= ClientSize.Width - ResizeEdge;
+                bool top = pos.Y <= ResizeEdge;
+                bool bottom = pos.Y >= ClientSize.Height - ResizeEdge;
+                if (top && left) m.Result = (IntPtr)HtTopLeft;
+                else if (top && right) m.Result = (IntPtr)HtTopRight;
+                else if (bottom && left) m.Result = (IntPtr)HtBottomLeft;
+                else if (bottom && right) m.Result = (IntPtr)HtBottomRight;
+                else if (left) m.Result = (IntPtr)HtLeft;
+                else if (right) m.Result = (IntPtr)HtRight;
+                else if (top) m.Result = (IntPtr)HtTop;
+                else if (bottom) m.Result = (IntPtr)HtBottom;
+            }
+            return;
+        }
+        base.WndProc(ref m);
     }
 }
