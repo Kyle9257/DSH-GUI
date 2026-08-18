@@ -28,6 +28,10 @@ cli-err.txt
 *.p12
 secrets*
 *token*
+*api*key*
+*secret*
+*password*
+*credential*
 
 # ---- 系统 / 编辑器 ----
 .vs/
