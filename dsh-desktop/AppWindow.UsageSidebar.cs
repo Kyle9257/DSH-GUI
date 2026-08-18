@@ -42,11 +42,11 @@ public sealed partial class AppWindow
         };
         _usagePanel.Controls.Add(title);
 
-        // 费用/余额显隐切换（👁）：默认掩码 *****，点击显示明文（偏好持久化）
+        // 费用/余额显隐切换（👁 自绘图标）：默认掩码 *****，点击显示明文（偏好持久化）
+        // 注意：不用 emoji 文本——WinForms GDI 无法渲染彩色 emoji（👁 会显示为空白），改用 Paint 自绘眼睛。
         _btnToggleSensitive = new Button
         {
-            Text = "👁",
-            Font = new Font("Segoe UI Emoji", 9),
+            Text = "",
             FlatStyle = FlatStyle.Flat,
             BackColor = Panel,
             ForeColor = Accent,
@@ -57,6 +57,7 @@ public sealed partial class AppWindow
         };
         _btnToggleSensitive.FlatAppearance.BorderSize = 0;
         _btnToggleSensitive.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 60, 68);
+        _btnToggleSensitive.Paint += BtnToggleSensitivePaint;
         Ui.ApplyRound(_btnToggleSensitive, 6);
         Ui.Tip(_tip, _btnToggleSensitive, "费用与余额默认掩码显示（*****），点击 👁 显示 / 隐藏明文");
         _btnToggleSensitive.Click += (_, _) => ToggleSensitiveVisible();
@@ -247,8 +248,30 @@ public sealed partial class AppWindow
     private void ToggleSensitiveVisible()
     {
         _sensitiveVisible = !_sensitiveVisible;
+        _btnToggleSensitive.Invalidate(); // 重绘眼睛图标状态（瞳孔实心/空心）
         UpdateModelUsage();
         SaveUiState(_usagePanel.Visible, _sensitiveVisible);
+    }
+
+    /// <summary>自绘眼睛图标：掩码时空心瞳孔（提示需点击查看），显示明文时实心瞳孔。</summary>
+    private void BtnToggleSensitivePaint(object? sender, PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        // 按钮 32x26：外轮廓椭圆 20x14 居中，瞳孔 6x6
+        var eye = new Rectangle(6, 6, 20, 14);
+        var pupil = new Rectangle(13, 11, 6, 6);
+        using var pen = new Pen(_sensitiveVisible ? Accent : Dim, 1.6f);
+        g.DrawEllipse(pen, eye);
+        if (_sensitiveVisible)
+        {
+            using var brush = new SolidBrush(Accent);
+            g.FillEllipse(brush, pupil);
+        }
+        else
+        {
+            g.DrawEllipse(pen, pupil);
+        }
     }
 
     // ---------- 侧栏显隐与偏好持久化 ----------
