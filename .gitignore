@@ -18,6 +18,17 @@ launcher-state.json
 cli-out.txt
 cli-err.txt
 
+# ---- 敏感信息（防止误提交）----
+.credentials*
+*.credentials.yaml
+*.env
+*.env.*
+*.pem
+*.key
+*.p12
+secrets*
+*token*
+
 # ---- 系统 / 编辑器 ----
 .vs/
 .idea/
