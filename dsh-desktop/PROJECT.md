@@ -97,6 +97,7 @@
 | 2026-08-17 | UI 样式优化（圆角/卡片/Tooltip/快捷键/文字加强）；GUI 消息尾部本轮用量 |
 | 2026-08-18 | 侧栏可隐藏（▤ 按钮 + 持久化）；修复标题按钮 DPI 消失 |
 | 2026-08-18 | 项目规范化：partial 拆分（UsageSidebar/Cli）、PROJECT.md 记忆、ci.ps1 自查 |
+| 2026-08-18 | GUI 左侧底部「🌐 社区」入口（sidebar.footer.action）；exe 布局改 SplitContainer（侧栏收起不遮挡）；git 建立并推送 GitHub |
 
 ## 七、自查清单（每次修改后执行）
 
@@ -104,3 +105,11 @@
 2. `ci.ps1`（构建 + verify-exe 9/9 + --stats 冒烟）→ 全绿
 3. 涉及 GUI 前端（client.js/worker.cjs）：`node --check` + 刷新页面人工确认
 4. 涉及 UI：重启 exe 目检（用户侧）
+5. 修改完成后 `git add -A && git commit`（自查全绿才提交），需要时 `git push`
+
+## 八、git 使用
+
+- 仓库根：`D:\DSH`（分支 `main`）；远程：`origin = https://github.com/Kyle9257/DSH-GUI`
+- 已提交：初始提交 f2a1dde（24 文件）；`.gitignore` 排除 bin/obj/dist/state/logs/WebView2 数据/ui-state.json 等
+- 提交规范：自查（ci.ps1）全绿 → `git add -A` → `git commit -m "说明"` → `git push`
+- 凭据：git 凭据管理器已存 GitHub 凭据，push 静默认证
