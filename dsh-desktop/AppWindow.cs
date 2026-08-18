@@ -168,18 +168,16 @@ public sealed partial class AppWindow : Form
 
         // ---- 主体：SplitContainer（Panel1=WebView2 对话区，Panel2=模型用量侧栏）----
         // SplitContainer 统一管理布局：窗口缩放/侧栏收起时绝不与 WebView2 重叠。
-        // 注意：SplitterDistance 不能在构造中按 ClientSize 计算（此时布局未定、DPI 未应用，
-        // 会导致 Panel2 初始过宽而「遮挡」对话区）；构造仅占位，OnShown 按真实宽度修正。
+        // 重要：构造中【不能】设置 SplitterDistance / Panel1MinSize / Panel2MinSize——
+        // 容器未布局（Width 未知）时设置 Panel2MinSize 会触发 SplitterDistance 校验并抛
+        // InvalidOperationException（实测崩溃）。全部延后到 OnShown 按安全顺序设置。
         _web.Dock = DockStyle.Fill;
         _web.DefaultBackgroundColor = Bg;
         _split = new SplitContainer
         {
             Dock = DockStyle.Fill,
             FixedPanel = FixedPanel.Panel2,
-            Panel1MinSize = 420,
-            Panel2MinSize = 240,
             SplitterWidth = 6,
-            SplitterDistance = 100,
             BackColor = Bg,
         };
         _split.Panel1.Controls.Add(_web);
@@ -396,11 +394,25 @@ public sealed partial class AppWindow : Form
     protected override async void OnShown(EventArgs e)
     {
         base.OnShown(e);
-        // 窗口实际布局完成后，按真实宽度设置侧栏初始宽度（侧栏固定 ~280px）
+        // 窗口实际布局完成后设置 SplitContainer 的尺寸约束（侧栏固定 ~280px）。
+        // 安全顺序（SplitContainer 的 MinSize setter 会校验当前 SplitterDistance）：
+        //   1) 先设 SplitterDistance（MinSize 仍为 0，校验宽松）
+        //   2) 再设 Panel1MinSize / Panel2MinSize
+        //   3) 最后把 SplitterDistance 调到目标值
         if (!_splitterSized)
         {
             _splitterSized = true;
-            _split.SplitterDistance = Math.Max(420, _split.Width - 286);
+            try
+            {
+                _split.SplitterDistance = 420;
+                _split.Panel1MinSize = 420;
+                _split.Panel2MinSize = 240;
+                _split.SplitterDistance = Math.Max(420, _split.Width - 286);
+            }
+            catch
+            {
+                // 约束设置失败仅影响拖拽范围，不阻塞启动
+            }
         }
         try
         {
